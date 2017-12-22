@@ -5,9 +5,9 @@
 #include "run.h"
 #include "util.h"
 
-void *top = 0;
-void *base = 0;
-void *cur = 0;
+void *top;
+void *cur;
+void *base;
 
 p_meta find_meta(p_meta *cur, size_t size) 
 {
@@ -21,63 +21,59 @@ p_meta find_meta(p_meta *cur, size_t size)
 	switch(fit_flag)
   {
 		case FIRST_FIT:
-			{
-				while(index != 0)
+		{
+			while(index)
+      {
+				if(index->free != 0 && index->size >= size)
         {
-					if(index->free != 0 && index->size >= size)
-          {
-						result = index;
-						break;
-					}
-          index = (index->next);
+					result = index;
+					break;
 				}
+        index = (index->next);
 			}
-			break;
+		}
+		break;
 
 		case BEST_FIT:
-			{
-				p_meta best=0;
-
-				while(index != NULL)
+    {
+      p_meta b = NULL;
+      int min = 2e9;
+      while(index)
+      {
+        if(index->free == 1 && index->size >= size && index->size < min)
         {
-					if(index->free == 1)
-						if((index->size) >=size)
-            {
-              if(best == 0)
-                best = index;
-              if(best->size > index->size)
-								best = index;
-						}
-					index = (index->next);
-				}
-				result = best;
-			}
-			break;
-
-		case WORST_FIT:
-			{
-				p_meta worst = 0;
-
-				while(index != 0)
-        {
-					if(index->free == 1)
-						if((index->size) >= size)
-            {
-							if(worst == 0)
-								worst = index;
-							else if(worst->size < index->size)
-								worst = index;
-						}
-					index = (index->next);
-				}
-				result = worst;
-			}
-			break;
+          b = index;
+          min = index->size;
+        }
+        index = index->next;
+      }
+      result = b; 
     }
+    break;
+    
+
+    case WORST_FIT:
+    {
+      p_meta w = NULL;
+      int max = 0;
+      while(index)
+      {
+        if(index->free == 1 && index->size >=size && index->size > max)
+        {     
+          w = index;
+          max = index->size;
+        }    
+        index = index->next;
+      }
+      result = w;
+    }
+    break;
+  }
 	return result;
 }
 
-void *m_malloc(size_t size) {
+void *m_malloc(size_t size) 
+{
   // 32bit 32bit 32bit
   if(size%4 != 0)
     size = ((size/4)+1)*4;
@@ -147,7 +143,6 @@ void m_free(void *ptr)
     (delete->prev)->next = NULL;
 }
 
-// realloc;;;
 void* m_realloc(void* ptr, size_t size)
 {
 	p_meta reborn = ptr - META_SIZE;
@@ -165,23 +160,8 @@ void* m_realloc(void* ptr, size_t size)
 			reborn->next = (reborn->next)->next;
 		}
   }
-
-  // assign new one in reborn block
-	if(reborn->size > size)
-  {
-		if(reborn->size > size + META_SIZE)
-    {
-			p_meta new = ptr + size;
-      new->free = 1;
-			new->prev = reborn;
-			new->size = (reborn->size) - size - META_SIZE;
-			new->next = reborn->next;
-      reborn->next = new;
-			reborn->size = size;
-		}
-	}
   // size is small...
-	else if((reborn->size) < size)
+	if((reborn->size) < size)
   {
     // can't use reborn, bring another things.
 		reborn->free = 1;
@@ -189,5 +169,19 @@ void* m_realloc(void* ptr, size_t size)
 		p_meta born = m_malloc(size);
 		memcpy(born, ptr, size);
 		return born;
+	}
+  // assign new one in reborn block
+	else if(reborn->size > size)
+  {
+		if(reborn->size > size + META_SIZE)
+    {
+			p_meta new = ptr + size;
+      new->free = 1;
+      new->size = (reborn->size) - size - META_SIZE;
+			new->prev = reborn;
+			new->next = reborn->next;
+      reborn->size = size;
+      reborn->next = new;
+		}
 	}
 }
