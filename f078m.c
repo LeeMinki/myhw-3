@@ -80,26 +80,31 @@ int main(int argc, char *argv[]) {
   for(i = 0 ; i < query_cnt ; i++) {
 
     switch(query_list[i].type) {
+      // malloc
       case 'm':
       alloc_list[j] = m_malloc(strlen(query_list[i].val) + 1);
       strcpy(alloc_list[j], query_list[i].val);
       j++;
       break;
+      // free
       case 'f':
       target = atoi(query_list[i].val);
       m_free(alloc_list[target]);
       break;
+      // realloc ( a 0 32) -> 0 is alloced by size(target)+32 size
       case 'a':
       sscanf(query_list[i].val, "%d %d", &target, &rsize);
       tsize = strlen(alloc_list[target]) + rsize;
       m_realloc(alloc_list[target], tsize);
       break;
+      // realloc (d 0 32) -> 0 is alloced by size(target)-32 size
       case 'd':
       sscanf(query_list[i].val, "%d %d", &target, &rsize);
       tsize = strlen(alloc_list[target]) - rsize;
       m_realloc(alloc_list[target], tsize);
       *(alloc_list[target] + tsize) = '\0';
       break;
+      // e...?
       case 'e':
       alloc_list[j++] = m_malloc(atoi(query_list[i].val));
       break;
